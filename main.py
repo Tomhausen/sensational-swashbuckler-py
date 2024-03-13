@@ -3,6 +3,9 @@ speed = 8
 deceleration = 0.95
 max_enemy_speed = -75
 enemies_to_reset: List[Sprite] = []
+# bh1.3
+daggers_collected = 0
+# /bh1.3
 
 orange_images = [
     assets.image("orange low"),
@@ -34,7 +37,11 @@ sprites.set_data_boolean(orange, "attacking", False)
 tiles.set_current_tilemap(assets.tilemap("level"))
 tiles.place_on_random_tile(orange, assets.tile("orange spawn"))
 scene.camera_follow_sprite(orange)
+# bh1.1
 scene.set_background_color(9)
+scene.set_background_image(assets.image("background"))
+scroller.scroll_background_with_camera(scroller.CameraScrollMode.ONLY_HORIZONTAL)
+# /bh1.1
 
 def spawn_enemy():
     if len(sprites.all_of_kind(SpriteKind.enemy)) < 3:
@@ -61,6 +68,47 @@ def lower_stance():
         orange.set_image(orange_images[new_player_stance])
 controller.down.on_event(ControllerButtonEvent.PRESSED, lower_stance)
 
+# gh1
+def throw_dagger():
+    dagger = sprites.create_projectile_from_sprite(image.create(16, 16), orange, 100, 0)
+    dagger.left = orange.x
+    orange.vx = -20
+    animation.run_image_animation(dagger, assets.animation("throwing dagger"), 50, True)
+
+def throttle_throw_dagger():
+    # bh1.3
+    global daggers_collected
+    if daggers_collected > 0:
+        timer.throttle("throw dagger", 2000, throw_dagger)
+        daggers_collected -= 1
+    # /bh1.3
+    # timer.throttle("throw dagger", 2000, throw_dagger)
+controller.B.on_event(ControllerButtonEvent.PRESSED, throttle_throw_dagger)
+
+def overlap_dagger(duelist, dagger):
+    if sprites.read_data_boolean(duelist, "attacking"):
+        dagger.vx *= -1.25
+    elif duelist.kind() == SpriteKind.enemy:
+        duelist.destroy()
+        dagger.destroy()
+    else:
+        game.over(False)
+sprites.on_overlap(SpriteKind.enemy, SpriteKind.projectile, overlap_dagger)
+sprites.on_overlap(SpriteKind.player, SpriteKind.projectile, overlap_dagger)
+
+def dagger_hit_wall(dagger, location):
+    dagger.destroy()
+scene.on_hit_wall(SpriteKind.projectile, dagger_hit_wall)
+# /gh1
+
+# bh1.3
+def drop_dagger(red: Sprite):
+    if randint(1, 4) == 1:
+        dagger_pickup = sprites.create(assets.image("dagger pickup"), SpriteKind.food)
+        dagger_pickup.x = red.x
+        dagger_pickup.bottom = red.bottom
+# /bh1.3
+
 def hit(orange, red):
     orange_stance = sprites.read_data_number(orange, "stance")
     red_stance = sprites.read_data_number(red, "stance")
@@ -69,10 +117,22 @@ def hit(orange, red):
         red.vx += 25
         scene.camera_shake(2, 100)
     elif sprites.read_data_boolean(orange, "attacking"):
+# bh1.3
+        drop_dagger(red)
         red.destroy()
+# /bh1.3
     else:
         game.over(False)
 sprites.on_overlap(SpriteKind.player, SpriteKind.enemy, hit)
+
+# bh1.3
+def collect_dagger(orange, dagger):
+    global daggers_collected
+    daggers_collected += 1
+    music.ba_ding.play()
+    dagger.destroy()
+sprites.on_overlap(SpriteKind.player, SpriteKind.food, collect_dagger)
+# /bh1.3
 
 def reset_player():
     stance = sprites.read_data_number(orange, "stance")
@@ -127,9 +187,14 @@ def player_movement():
         orange.vx -= speed
     orange.vx *= deceleration
 
+# bh1.2
 def dash_back():
     orange.vx = -200
+
+def throttle_dash():
+    timer.throttle("dash", 2000, dash_back)
 controller.combos.attach_combo("ll", dash_back)
+# /bh1.2
 
 def player_behaviour():
     player_movement()
