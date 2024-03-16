@@ -19,7 +19,7 @@ tiles.setCurrentTilemap(assets.tilemap`level`)
 tiles.placeOnRandomTile(orange, assets.tile`orange spawn`)
 scene.cameraFollowSprite(orange)
 //  bh1.1
-scene.setBackgroundColor(9)
+//  scene.set_background_color(9)
 scene.setBackgroundImage(assets.image`background`)
 scroller.scrollBackgroundWithCamera(scroller.CameraScrollMode.OnlyHorizontal)
 //  /bh1.1
