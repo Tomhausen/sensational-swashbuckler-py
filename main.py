@@ -72,7 +72,8 @@ controller.down.on_event(ControllerButtonEvent.PRESSED, lower_stance)
 def throw_dagger():
     dagger = sprites.create_projectile_from_sprite(image.create(16, 16), orange, 100, 0)
     dagger.left = orange.x
-    orange.vx = -20
+    dagger.y = orange.y
+    dagger.vx = 150
     animation.run_image_animation(dagger, assets.animation("throwing dagger"), 50, True)
 
 def throttle_throw_dagger():
