@@ -60,10 +60,9 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function throttle_throw_dagg
     if (daggers_collected > 0) {
         timer.throttle("throw dagger", 2000, function throw_dagger() {
             let dagger: Sprite;
-            dagger = sprites.createProjectileFromSprite(image.create(16, 16), orange, 100, 0)
+            dagger = sprites.createProjectileFromSprite(image.create(16, 16), orange, 150, 0)
             dagger.left = orange.x
-            dagger.y = orange.y
-            dagger.vx = 150
+            orange.vx = -20
             animation.runImageAnimation(dagger, assets.animation`throwing dagger`, 50, true)
         })
         daggers_collected -= 1
