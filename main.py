@@ -4,6 +4,9 @@ deceleration = 0.95
 max_enemy_speed = -75
 enemies_to_reset: List[Sprite] = []
 daggers_collected = 0
+# bh2.3
+floor_index = -1
+# /bh2.3
 
 orange_images = [
     assets.image("orange low"),
@@ -33,11 +36,22 @@ sprites.set_data_boolean(orange, "attacking", False)
 
 # setup
 tiles.set_current_tilemap(assets.tilemap("level"))
+# bh2.1
+info.set_life(3)
+# /bh2.1
 tiles.place_on_random_tile(orange, assets.tile("orange spawn"))
 scene.camera_follow_sprite(orange)
-# scene.set_background_color(9)
 scene.set_background_image(assets.image("background"))
 scroller.scroll_background_with_camera(scroller.CameraScrollMode.ONLY_HORIZONTAL)
+
+# bh2.2
+# progress bar
+progress_bar = statusbars.create(130, 11, StatusBarKind.Energy)
+progress_bar.max = (tilesAdvanced.get_tilemap_width() - 2) * 16
+progress_bar.right = 160
+progress_bar.top = 0
+progress_bar.set_color(4, 11)
+# /bh2.2
 
 def spawn_enemy():
     if len(sprites.all_of_kind(SpriteKind.enemy)) < 3:
@@ -131,6 +145,10 @@ def hit(orange, red):
     elif not sprites.read_data_boolean(red, "stunned"):
 # /gh2
         game.over(False)
+# bh2.1
+        info.change_life_by(-1)
+        tiles.place_on_random_tile(orange, assets.tile("orange spawn"))
+# /bh2.1
 sprites.on_overlap(SpriteKind.player, SpriteKind.enemy, hit)
 
 def collect_dagger(orange, dagger):
@@ -217,6 +235,24 @@ def throttle_dash():
     timer.throttle("dash", 2000, dash_back)
 controller.combos.attach_combo("ll", dash_back)
 
+# bh2.3
+def knockdown_next_platform():
+    global floor_index
+    next_pier_location = tiles.get_tile_location(floor_index, tilesAdvanced.get_tilemap_height() - 1)
+    tiles.set_tile_at(next_pier_location, assets.tile("danger"))
+    tiles.set_wall_at(next_pier_location, False)
+    music.knock.play()
+    floor_index += 1
+game.on_update_interval(5000, knockdown_next_platform)
+
+def detect_fall():
+    col = Math.round((orange.left - 5) / 16)
+    row = orange.tilemap_location().row + 1
+    if not tiles.tile_at_location_is_wall(tiles.get_tile_location(col, row)):
+        game.over(False)
+game.on_update_interval(200, detect_fall)
+# /bh2.3
+
 def player_behaviour():
     player_movement()
 # gh2
@@ -231,5 +267,8 @@ def player_behaviour():
 def tick():
     for enemy in sprites.all_of_kind(SpriteKind.enemy):
         enemy_behaviour(enemy)
-    player_behaviour()  
+    player_behaviour()
+# bh2.2
+    progress_bar.value = orange.x
+# /bh2.2
 game.on_update(tick)

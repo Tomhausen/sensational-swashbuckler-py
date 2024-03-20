@@ -4,6 +4,9 @@ let deceleration = 0.95
 let max_enemy_speed = -75
 let enemies_to_reset : Sprite[] = []
 let daggers_collected = 0
+//  bh2.3
+let floor_index = -1
+//  /bh2.3
 let orange_images = [assets.image`orange low`, assets.image`orange mid`, assets.image`orange high`]
 let orange_animations = [assets.animation`orange attack low`, assets.animation`orange attack mid`, assets.animation`orange attack high`]
 let red_images = [assets.image`red low`, assets.image`red mid`, assets.image`red high`]
@@ -14,11 +17,21 @@ sprites.setDataNumber(orange, "stance", 0)
 sprites.setDataBoolean(orange, "attacking", false)
 //  setup
 tiles.setCurrentTilemap(assets.tilemap`level`)
+//  bh2.1
+info.setLife(3)
+//  /bh2.1
 tiles.placeOnRandomTile(orange, assets.tile`orange spawn`)
 scene.cameraFollowSprite(orange)
-//  scene.set_background_color(9)
 scene.setBackgroundImage(assets.image`background`)
 scroller.scrollBackgroundWithCamera(scroller.CameraScrollMode.OnlyHorizontal)
+//  bh2.2
+//  progress bar
+let progress_bar = statusbars.create(130, 11, StatusBarKind.Energy)
+progress_bar.max = (tilesAdvanced.getTilemapWidth() - 2) * 16
+progress_bar.right = 160
+progress_bar.top = 0
+progress_bar.setColor(4, 11)
+//  /bh2.2
 game.onUpdateInterval(1500, function spawn_enemy() {
     let enemy: Sprite;
     if (sprites.allOfKind(SpriteKind.Enemy).length < 3) {
@@ -100,6 +113,7 @@ function stun(red: Sprite) {
 }
 
 //  /gh2
+//  /bh2.1
 sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function hit(orange: Sprite, red: Sprite) {
     let orange_stance = sprites.readDataNumber(orange, "stance")
     let red_stance = sprites.readDataNumber(red, "stance")
@@ -122,6 +136,9 @@ sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function hit(orange: Spri
         //  else:
         //  /gh2
         game.over(false)
+        //  bh2.1
+        info.changeLifeBy(-1)
+        tiles.placeOnRandomTile(orange, assets.tile`orange spawn`)
     }
     
 })
@@ -231,6 +248,24 @@ function throttle_dash() {
 }
 
 controller.combos.attachCombo("ll", dash_back)
+//  bh2.3
+game.onUpdateInterval(5000, function knockdown_next_platform() {
+    
+    let next_pier_location = tiles.getTileLocation(floor_index, tilesAdvanced.getTilemapHeight() - 1)
+    tiles.setTileAt(next_pier_location, assets.tile`danger`)
+    tiles.setWallAt(next_pier_location, false)
+    music.knock.play()
+    floor_index += 1
+})
+game.onUpdateInterval(200, function detect_fall() {
+    let col = Math.round((orange.left - 5) / 16)
+    let row = orange.tilemapLocation().row + 1
+    if (!tiles.tileAtLocationIsWall(tiles.getTileLocation(col, row))) {
+        game.over(false)
+    }
+    
+})
+//  /bh2.3
 function player_behaviour() {
     player_movement()
     //  gh2
@@ -249,9 +284,12 @@ function player_behaviour() {
     
 }
 
+//  /bh2.2
 game.onUpdate(function tick() {
     for (let enemy of sprites.allOfKind(SpriteKind.Enemy)) {
         enemy_behaviour(enemy)
     }
     player_behaviour()
+    //  bh2.2
+    progress_bar.value = orange.x
 })
